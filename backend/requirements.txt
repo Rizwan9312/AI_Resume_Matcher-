@@ -1,0 +1,42 @@
+# ── Core Framework ──────────────────────────────────────
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# ── Database ────────────────────────────────────────────
+sqlalchemy[asyncio]
+asyncpg
+alembic
+greenlet
+
+# ── Cache & Queue ───────────────────────────────────────
+redis
+celery[redis]
+
+# ── Auth & Security ─────────────────────────────────────
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+
+# ── HTTP Client ─────────────────────────────────────────
+httpx
+
+# ── File Parsing ────────────────────────────────────────
+pdfplumber
+python-docx
+python-multipart
+
+# ── ML / AI ─────────────────────────────────────────────
+sentence-transformers
+scikit-learn
+spacy
+
+# ── Observability ───────────────────────────────────────
+structlog
+
+# ── Rate Limiting ───────────────────────────────────────
+slowapi
+
+# ── Environment ─────────────────────────────────────────
+python-dotenv

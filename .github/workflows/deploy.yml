@@ -1,0 +1,28 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker images
+        run: |
+          docker build -t resume-matcher-backend:${{ github.sha }} ./backend
+          docker build -t resume-matcher-frontend:${{ github.sha }} ./frontend
+      - name: Run smoke tests
+        run: echo "Smoke tests would run here against staging"
+      - name: Notify
+        run: echo "Would notify Slack on success/failure"
+
+  deploy-production:
+    needs: deploy-staging
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy
+        run: echo "Would deploy to production with rolling update"
+      - name: Post-deploy smoke tests
+        run: echo "Would run smoke tests against production"

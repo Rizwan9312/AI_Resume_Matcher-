@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer base {
+  :root {
+    --background: 222 47% 5%;
+    --foreground: 220 20% 92%;
+    --card: 222 40% 8%;
+    --card-foreground: 220 20% 92%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 40% 14%;
+    --muted: 222 30% 18%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 160 60% 52%;
+    --destructive: 0 72% 51%;
+    --border: 222 30% 15%;
+    --ring: 217 91% 60%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(96, 165, 250, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96, 165, 250, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Score ring animation */
+@keyframes scoreRing {
+  from { stroke-dashoffset: var(--ring-circumference); }
+  to { stroke-dashoffset: var(--ring-offset); }
+}
+
+.animate-ring {
+  animation: scoreRing 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(15, 18, 30, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(96, 165, 250, 0.08);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #e8eaf0 30%, #60a5fa 70%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Score color classes */
+.score-excellent { color: #3dd68c; }
+.score-good { color: #f5c842; }
+.score-moderate { color: #f58442; }
+.score-low { color: #f54242; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: hsl(222 47% 5%); }
+::-webkit-scrollbar-thumb {
+  background: hsl(222 30% 20%);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: hsl(222 30% 30%); }
