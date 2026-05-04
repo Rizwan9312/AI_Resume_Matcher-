@@ -38,7 +38,7 @@ class RewriteSession(Base, TimestampMixin):
     celery_task_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     bullet_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     weak_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    rewrites: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    rewrites: Mapped[dict | list | None] = mapped_column(JSONB, nullable=True)
 
     # Relationships
     match_result = relationship("MatchResult", back_populates="rewrite_sessions")

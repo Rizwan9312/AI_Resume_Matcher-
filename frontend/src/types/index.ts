@@ -71,14 +71,16 @@ export interface MatchResult {
 
 export interface RewriteSession {
   id: string;
-  status: "pending" | "complete" | "failed";
-  bullet_count?: number;
-  weak_count?: number;
-  rewrites?: Array<{
-    original: string;
-    rewritten_variants: string[];
-    reason: string;
-  }>;
+  status: "pending" | "processing" | "complete" | "failed";
+  resume_id: string;
+  jd_text?: string;
+  rewrites?: {
+    rewritten_resume: string;
+    overall_suggestions: string[];
+    ats_keywords_added: string[];
+    sections_improved: Record<string, string>;
+    estimated_score_improvement: string;
+  };
   created_at: string;
 }
 

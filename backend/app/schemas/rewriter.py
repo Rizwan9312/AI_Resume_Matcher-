@@ -20,7 +20,7 @@ class RewriteResponse(BaseModel):
     status: str
     bullet_count: Optional[int] = None
     weak_count: Optional[int] = None
-    rewrites: Optional[list] = None
+    rewrites: Optional[dict | list] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

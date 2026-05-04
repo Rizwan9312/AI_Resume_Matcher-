@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import { MatchResult } from "@/types";
@@ -147,15 +148,28 @@ export default function MatchResultPage() {
     <div className="max-w-4xl mx-auto px-6 py-10">
       <h1 className="text-3xl font-bold mb-8">Match Results</h1>
 
-      <div className="glass-card rounded-2xl p-8 mb-6 text-center">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground mb-4">Overall Match Score</div>
-        <div className={`text-6xl font-extrabold ${getScoreColor(score)}`}>{Math.round(score)}</div>
-        <div className="text-sm text-muted-foreground mt-1">/ 100</div>
-        {match.role_detected && (
-          <div className="inline-flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary">
-            🎯 {match.role_detected}
+      <div className="glass-card rounded-2xl p-8 mb-6 text-center relative overflow-hidden">
+        {score < 70 && (
+          <div className="absolute top-0 left-0 w-full bg-amber-500/20 text-amber-500 text-xs py-1.5 font-medium">
+            Score is low. Consider rewriting your resume.
           </div>
         )}
+        <div className="text-xs uppercase tracking-widest text-muted-foreground mb-4 mt-4">Overall Match Score</div>
+        <div className={`text-6xl font-extrabold ${getScoreColor(score)}`}>{Math.round(score)}</div>
+        <div className="text-sm text-muted-foreground mt-1">/ 100</div>
+        <div className="flex flex-col items-center gap-4 mt-6">
+          {match.role_detected && (
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary">
+              🎯 {match.role_detected}
+            </div>
+          )}
+          <Link 
+            href={`/rewrite/${match.id}`}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all shadow-lg hover:shadow-primary/25"
+          >
+            ✨ Auto-Rewrite Resume
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
