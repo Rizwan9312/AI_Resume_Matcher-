@@ -103,6 +103,10 @@ export default function MatchResultPage() {
   const params = useParams();
   const [match, setMatch] = useState<MatchResult | null>(null);
   const [polling, setPolling] = useState(true);
+  const [history, setHistory] = useState<any[]>([]);
+  const [comparing, setComparing] = useState(false);
+  const [compareMatchId, setCompareMatchId] = useState<string>("");
+  const [compareData, setCompareData] = useState<{match1: MatchResult, match2: MatchResult} | null>(null);
 
   useEffect(() => {
     if (!params.id) return;
@@ -121,6 +125,29 @@ export default function MatchResultPage() {
       return () => clearInterval(interval);
     }
   }, [params.id, polling]);
+
+  useEffect(() => {
+    if (match?.status === "complete" && history.length === 0) {
+      api.get(`/resumes/${match.resume_id}/history`)
+        .then(res => setHistory(res.data.history || []))
+        .catch(console.error);
+    }
+  }, [match?.status, match?.resume_id, history.length]);
+
+  const handleCompare = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id2 = e.target.value;
+    setCompareMatchId(id2);
+    if (!id2) {
+      setCompareData(null);
+      return;
+    }
+    try {
+      const res = await api.get(`/matches/compare?match_id_1=${match?.id}&match_id_2=${id2}`);
+      setCompareData(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (!match) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -169,6 +196,41 @@ export default function MatchResultPage() {
           >
             ✨ Auto-Rewrite Resume
           </Link>
+          
+          <div className="mt-2 flex flex-col items-center">
+            {!comparing ? (
+              <button 
+                onClick={() => setComparing(true)}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors underline"
+              >
+                Compare with another match
+              </button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <select 
+                  value={compareMatchId} 
+                  onChange={handleCompare}
+                  className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-foreground"
+                >
+                  <option value="">-- Select a match to compare --</option>
+                  {history.filter(h => h.match_id !== match.id).map(h => (
+                    <option key={h.match_id} value={h.match_id}>
+                      {h.job_title || "Unknown Job"} - {Math.round(h.final_score || 0)} ({(new Date(h.created_at)).toLocaleDateString()})
+                    </option>
+                  ))}
+                  {history.filter(h => h.match_id !== match.id).length === 0 && (
+                    <option disabled>No other matches found for this resume</option>
+                  )}
+                </select>
+                <button 
+                  onClick={() => { setComparing(false); setCompareData(null); setCompareMatchId(""); }}
+                  className="text-xs text-muted-foreground hover:text-destructive"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -239,6 +301,92 @@ export default function MatchResultPage() {
                   <li key={i} className="text-sm text-muted-foreground">• {g}</li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {compareData && (
+        <div className="mt-12 pt-10 border-t border-border/50">
+          <h2 className="text-2xl font-bold mb-6">Match Comparison</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[compareData.match1, compareData.match2].map((m, idx) => (
+              <div key={m.id} className={`glass-card rounded-2xl p-6 border ${idx === 0 ? "border-primary/30" : "border-border/50"}`}>
+                <h3 className="text-sm uppercase tracking-widest text-muted-foreground mb-4">
+                  {idx === 0 ? "Current Match" : "Compared Match"}
+                </h3>
+                <div className={`text-4xl font-bold mb-6 ${getScoreColor(m.final_score || 0)}`}>
+                  {Math.round(m.final_score || 0)} <span className="text-lg text-muted-foreground font-normal">/ 100</span>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Scores (BERT / TF-IDF / Key / LLM)</div>
+                    <div className="text-sm font-medium">
+                      {m.bert_score != null ? Math.round(m.bert_score) : "—"} / {" "}
+                      {m.tfidf_score != null ? Math.round(m.tfidf_score) : "—"} / {" "}
+                      {m.keyword_score != null ? Math.round(m.keyword_score) : "—"} / {" "}
+                      {m.llm_score != null ? Math.round(m.llm_score) : "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Matched Keywords</div>
+                    <div className="text-sm flex flex-wrap gap-1">
+                      {(m.matched_keywords || []).slice(0, 5).map((kw: string) => (
+                        <span key={kw} className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-xs">{kw}</span>
+                      ))}
+                      {(m.matched_keywords || []).length > 5 && <span className="text-xs text-muted-foreground">+{m.matched_keywords!.length - 5} more</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Missing Keywords</div>
+                    <div className="text-sm flex flex-wrap gap-1">
+                      {(m.missing_keywords || []).slice(0, 5).map((kw: string) => (
+                        <span key={kw} className="px-1.5 py-0.5 bg-destructive/10 text-destructive rounded text-xs">{kw}</span>
+                      ))}
+                      {(m.missing_keywords || []).length > 5 && <span className="text-xs text-muted-foreground">+{m.missing_keywords!.length - 5} more</span>}
+                    </div>
+                  </div>
+                  {m.feedback_text && (
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Feedback</div>
+                      <p className="text-xs line-clamp-3 text-muted-foreground">{m.feedback_text}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-12 pt-10 border-t border-border/50">
+          <h2 className="text-2xl font-bold mb-6">Historical Score Trend</h2>
+          <div className="glass-card rounded-2xl p-2">
+            <div className="space-y-1">
+              {history.map(h => (
+                <Link 
+                  key={h.match_id} 
+                  href={`/match/${h.match_id}`} 
+                  className={`flex items-center justify-between p-4 rounded-xl transition-all ${h.match_id === match.id ? 'bg-primary/5 border border-primary/20' : 'hover:bg-white/[0.02] border border-transparent'}`}
+                >
+                  <div>
+                    <p className="font-medium text-foreground">{h.job_title || "Unknown Job"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(h.created_at).toLocaleDateString()} at {new Date(h.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {h.match_id === match.id && (
+                      <span className="text-[10px] uppercase tracking-wider text-primary font-semibold px-2 py-1 bg-primary/10 rounded-full">Current</span>
+                    )}
+                    <div className={`text-2xl font-bold ${getScoreColor(h.final_score)} w-12 text-right`}>
+                      {h.final_score != null ? Math.round(h.final_score) : "—"}
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>

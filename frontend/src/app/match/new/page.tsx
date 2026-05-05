@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import api from "@/lib/api";
 
 export default function NewMatchPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [file, setFile] = useState<File | null>(null);
   const [jdText, setJdText] = useState("");
@@ -13,6 +14,22 @@ export default function NewMatchPage() {
   const [error, setError] = useState("");
   const [resumeId, setResumeId] = useState("");
   const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    const jobId = searchParams.get("jobId");
+    if (jobId) {
+      const fetchJob = async () => {
+        try {
+          const res = await api.get(`/jobs/${jobId}`);
+          if (res.data.raw_text) setJdText(res.data.raw_text);
+          if (res.data.title) setJdTitle(res.data.title);
+        } catch (err) {
+          console.error("Failed to load pre-filled job description", err);
+        }
+      };
+      fetchJob();
+    }
+  }, [searchParams]);
 
   const handleUpload = async () => {
     if (!file) return;

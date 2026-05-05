@@ -24,6 +24,8 @@ class JobDescription(Base, TimestampMixin):
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     parsed_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    industry_tag: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    role_tag: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Relationships
     user = relationship("User", back_populates="job_descriptions")

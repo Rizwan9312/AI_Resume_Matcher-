@@ -17,6 +17,9 @@ class ResumeResponse(BaseModel):
     parse_status: str
     parsed_sections: Optional[dict] = None
     created_at: datetime
+    version_number: int = 1
+    parent_resume_id: Optional[uuid.UUID] = None
+    is_active: bool = True
 
     model_config = {"from_attributes": True}
 

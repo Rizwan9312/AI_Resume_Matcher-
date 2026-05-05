@@ -17,6 +17,11 @@ from app.models.job_description import JobDescription
 from app.models.user import User
 from app.schemas.match import MatchCreateRequest, MatchListResponse, MatchResponse
 from app.utils.logger import get_logger
+from pydantic import BaseModel
+
+class CompareMatchResponse(BaseModel):
+    match1: MatchResponse
+    match2: MatchResponse
 
 logger = get_logger("matches_api")
 
@@ -108,6 +113,40 @@ async def create_match(
     logger.info("match.created", match_id=str(match.id))
     return {"match_id": str(match.id), "status": "pending"}
 
+
+@router.get("/compare", response_model=CompareMatchResponse)
+async def compare_matches(
+    match_id_1: str,
+    match_id_2: str,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Compare two match results side by side."""
+    try:
+        mid1 = uuid_mod.UUID(match_id_1)
+        mid2 = uuid_mod.UUID(match_id_2)
+    except ValueError:
+        raise HTTPException(400, detail={"code": "invalid_id", "message": "Invalid match ID format"})
+
+    result1 = await session.execute(
+        select(MatchResult).where(MatchResult.id == mid1)
+    )
+    match1 = result1.scalar_one_or_none()
+
+    result2 = await session.execute(
+        select(MatchResult).where(MatchResult.id == mid2)
+    )
+    match2 = result2.scalar_one_or_none()
+
+    if not match1 or not match2:
+        raise HTTPException(404, detail={"code": "not_found", "message": "One or both matches not found"})
+    if match1.user_id != current_user.id or match2.user_id != current_user.id:
+        raise HTTPException(403, detail={"code": "forbidden", "message": "Access denied"})
+
+    return CompareMatchResponse(
+        match1=MatchResponse.model_validate(match1),
+        match2=MatchResponse.model_validate(match2)
+    )
 
 @router.get("/{match_id}", response_model=MatchResponse)
 async def get_match(
