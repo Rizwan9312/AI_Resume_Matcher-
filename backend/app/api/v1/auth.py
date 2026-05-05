@@ -18,12 +18,16 @@ from app.schemas.auth import (
     RegisterRequest,
     TokenResponse,
     UserResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
 )
 from app.services.auth_service import (
     login_user,
     logout_user,
     refresh_tokens,
     register_user,
+    request_password_reset,
+    reset_password,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -113,6 +117,71 @@ async def logout(
     """Revoke a refresh token."""
     await logout_user(session, body.refresh_token)
     return MessageResponse(success=True, message="Logged out")
+
+
+@router.get("/verify-email", response_model=MessageResponse)
+async def verify_email(
+    token: str,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    """Verify user's email address using a token."""
+    from app.utils.security import decode_verification_token
+    import uuid
+    from sqlalchemy import select
+
+    user_id_str = decode_verification_token(token)
+    if not user_id_str:
+        raise HTTPException(status_code=400, detail={"code": "invalid_token", "message": "Invalid or expired verification token"})
+
+    try:
+        user_id = uuid.UUID(user_id_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail={"code": "invalid_token", "message": "Invalid user ID"})
+
+    result = await session.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail={"code": "user_not_found", "message": "User not found"})
+
+    if user.is_verified:
+        return MessageResponse(success=True, message="Email already verified")
+
+    user.is_verified = True
+    await session.commit()
+
+    return MessageResponse(success=True, message="Email successfully verified")
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    """Request a password reset link."""
+    await request_password_reset(session, body.email)
+    return MessageResponse(
+        success=True,
+        message="If that email is registered, a reset link has been sent.",
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password_endpoint(
+    body: ResetPasswordRequest,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    """Reset password using a token."""
+    try:
+        await reset_password(session, body.token, body.new_password)
+        return MessageResponse(success=True, message="Password successfully reset")
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": str(exc), "message": "Invalid or expired token"},
+        )
 
 
 @router.get("/me", response_model=UserResponse)

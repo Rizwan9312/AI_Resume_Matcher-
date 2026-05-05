@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import api, { setTokens } from "@/lib/api";
 
 export default function LoginPage() {
@@ -29,7 +30,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 relative">
+      <button 
+        onClick={() => router.back()} 
+        className="absolute top-6 left-6 flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </button>
+      
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl mb-4">R</div>
@@ -47,7 +56,9 @@ export default function LoginPage() {
               className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary transition" placeholder="you@example.com" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Password</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider">Password</label>
+            </div>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
               className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary transition" placeholder="••••••••" />
           </div>
@@ -55,9 +66,15 @@ export default function LoginPage() {
             className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-40">
             {loading ? "Signing in…" : "Sign In"}
           </button>
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account? <Link href="/register" className="text-primary hover:underline">Create one</Link>
-          </p>
+          
+          <div className="flex flex-col items-center space-y-3 pt-2 text-sm text-muted-foreground">
+            <Link href="/forgot-password" className="hover:text-primary transition-colors">
+              Forgot your password?
+            </Link>
+            <p>
+              Don't have an account? <Link href="/register" className="text-primary hover:underline font-medium">Create one</Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>

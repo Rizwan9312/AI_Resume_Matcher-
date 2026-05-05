@@ -77,3 +77,27 @@ def decode_access_token(token: str) -> dict | None:
     except JWTError as exc:
         logger.warning("jwt.decode_failed", error=str(exc))
         return None
+
+def create_verification_token(user_id: str) -> str:
+    """Create a JWT token for email verification."""
+    expire = datetime.now(timezone.utc) + timedelta(days=1)
+    payload = {
+        "sub": str(user_id),
+        "exp": expire,
+        "type": "verify_email",
+    }
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+def decode_verification_token(token: str) -> str | None:
+    """Decode a verification token and return the user_id."""
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
+        if payload.get("type") != "verify_email":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None

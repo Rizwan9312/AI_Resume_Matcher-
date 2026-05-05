@@ -1,6 +1,6 @@
 # ResumeIQ — AI Resume Matcher: Complete Project Summary
 
-> **Last Updated:** 2026-05-03  
+> **Last Updated:** 2026-05-05  
 > **Purpose:** This document enables any AI model or developer to fully understand the current state of this project and continue work without prior context.
 
 ---
@@ -12,7 +12,7 @@
 - **Multi-dimensional scoring** — BERT semantic similarity, TF-IDF cosine similarity, keyword overlap %, and LLM-as-judge scoring
 - **Role-aware weighting** — auto-detects job role category (engineering, data science, design, etc.) and applies optimized score weights
 - **Keyword gap analysis** — identifies matched and missing skills/keywords
-- **AI bullet rewriter** — rewrites weak resume bullets into quantified, ATS-optimized statements
+- **Auto-Rewrite Resume Feature** — A complete AI pipeline that takes a low-scoring resume and entirely rewrites it to match the job description, providing new ATS keywords, section-by-section feedback, and an instant download of the new optimized resume.
 - **Feedback generation** — actionable plain-text feedback based on score tiers
 
 The app is branded as **"ResumeIQ"** in the UI.
@@ -84,7 +84,7 @@ AI_Resume_Matcher--main/
 │   │   │   ├── resume.py         # Resume (uploaded file + parsed text)
 │   │   │   ├── job_description.py # JobDescription (raw JD text)
 │   │   │   ├── match_result.py   # MatchResult (all scores, keywords, LLM verdict)
-│   │   │   ├── rewrite_session.py # RewriteSession (AI rewrite history)
+│   │   │   ├── rewrite_session.py # RewriteSession (AI rewrite history/results)
 │   │   │   └── subscription.py   # Subscription + UsageEvent (billing stubs)
 │   │   │
 │   │   ├── schemas/              # Pydantic request/response schemas
@@ -101,7 +101,7 @@ AI_Resume_Matcher--main/
 │   │   │   ├── resumes.py        # CRUD: upload, list, get, delete resumes
 │   │   │   ├── jobs.py           # CRUD: create, list, get job descriptions
 │   │   │   ├── matches.py        # Create match, get result, list (with polling)
-│   │   │   ├── rewriter.py       # AI bullet rewriting endpoint
+│   │   │   ├── rewriter.py       # Auto-Rewrite endpoints (POST /rewrites, GET /rewrites/{id})
 │   │   │   ├── users.py          # User profile management
 │   │   │   ├── tenants.py        # Tenant/workspace management
 │   │   │   └── billing.py        # Billing stubs (Stripe-ready)
@@ -110,7 +110,7 @@ AI_Resume_Matcher--main/
 │   │   │   ├── auth_service.py   # Register, login, refresh, logout logic
 │   │   │   ├── resume_service.py # Resume parsing orchestration
 │   │   │   ├── match_service.py  # Match pipeline orchestration
-│   │   │   ├── rewriter_service.py # Rewrite logic
+│   │   │   ├── rewriter_service.py # Legacy rewrite logic
 │   │   │   ├── billing_service.py  # Billing stubs
 │   │   │   └── notification_service.py # Notification stubs
 │   │   │
@@ -126,7 +126,7 @@ AI_Resume_Matcher--main/
 │   │   ├── workers/              # Celery background tasks
 │   │   │   ├── celery_app.py     # Celery configuration
 │   │   │   ├── match_tasks.py    # Full match scoring pipeline (async)
-│   │   │   ├── rewrite_tasks.py  # AI bullet rewriting pipeline
+│   │   │   ├── rewrite_tasks.py  # AI full-resume & bullet rewriting pipeline
 │   │   │   └── notification_tasks.py # Email notification stubs
 │   │   │
 │   │   └── utils/                # Shared utilities
@@ -162,13 +162,15 @@ AI_Resume_Matcher--main/
 │   │   │   │   ├── page.tsx      # Main dashboard
 │   │   │   │   ├── resumes/      # Resume management
 │   │   │   │   └── matches/      # Match history
-│   │   │   └── match/
-│   │   │       ├── new/page.tsx  # New match analysis form
-│   │   │       └── [id]/         # Match result detail view
+│   │   │   ├── match/
+│   │   │   │   ├── new/page.tsx  # New match analysis form
+│   │   │   │   └── [id]/         # Match result detail view (contains Auto-Rewrite trigger)
+│   │   │   └── rewrite/
+│   │   │       └── [match_id]/   # Dedicated page for the AI resume rewriting process & download
 │   │   ├── lib/
 │   │   │   ├── api.ts            # Axios client with JWT interceptor + auto-refresh
 │   │   │   └── utils.ts          # Utility functions (clsx/cn helper)
-│   │   └── types/                # TypeScript type definitions
+│   │   └── types/                # TypeScript type definitions (contains new RewriteSession type)
 │   └── Dockerfile
 │
 └── data/                         # Data directory (sample files, etc.)
@@ -242,14 +244,20 @@ erDiagram
         jsonb llm_verdict
         text feedback_text
     }
+
+    RewriteSession {
+        uuid id PK
+        uuid user_id FK
+        uuid match_id FK
+        uuid resume_id FK
+        text jd_text
+        enum status "pending|complete|failed"
+        jsonb rewrites
+    }
 ```
 
-### Key Mixins
-- **TimestampMixin** — adds `created_at` with `server_default=func.now()`
-- **SoftDeleteMixin** — adds `deleted_at` for soft deletes (used by User, Resume, Tenant)
-
 ### Critical Note on Models
-All models **MUST** be imported in `backend/app/models/__init__.py` for SQLAlchemy mapper resolution. Missing imports cause `NoReferencedColumnError` at startup. This was a recurring bug in past conversations.
+All models **MUST** be imported in `backend/app/models/__init__.py` for SQLAlchemy mapper resolution. Missing imports cause `NoReferencedColumnError` at startup.
 
 ---
 
@@ -273,16 +281,10 @@ All routes are prefixed with `/api/v1`.
 | `POST` | `/matches` | Yes | Start match analysis (returns 202 + match_id) |
 | `GET` | `/matches/{id}` | Yes | Get match result (used for polling) |
 | `GET` | `/matches` | Yes | List matches (paginated, filterable by status) |
-| `POST` | `/rewriter/rewrite` | Yes | AI bullet rewriting |
+| `POST` | `/rewrites` | Yes | Start AI Full Resume Rewrite (needs `match_id`) |
+| `GET` | `/rewrites/{id}`| Yes | Poll rewrite session status/results |
 | `GET` | `/users/me` | Yes | Get current user profile |
 | `GET` | `/health` | No | Health check (DB + Redis status) |
-
-### Authentication Flow
-1. Client registers/logs in → receives `access_token` (JWT, 15min) + `refresh_token` (opaque hex, 30 days)
-2. Access token sent as `Bearer` header via Axios interceptor
-3. On 401 → auto-refresh via `/auth/refresh` → retry original request
-4. Refresh tokens stored hashed (SHA-256) in DB with revocation support
-5. Frontend stores tokens in-memory only (no localStorage for security)
 
 ---
 
@@ -301,18 +303,6 @@ The match pipeline runs in a Celery worker (`workers/match_tasks.py`) and execut
 8. Final Score  →  Weighted average based on detected role
 9. Feedback  →  Tier-based text + missing skills summary
 ```
-
-### Role-Aware Weights (examples)
-- **Software Engineering**: BERT 30%, TF-IDF 15%, Keywords 30%, LLM 25%
-- **Data Science**: BERT 25%, TF-IDF 20%, Keywords 25%, LLM 30%
-- **Design**: BERT 20%, TF-IDF 10%, Keywords 25%, LLM 45%
-
-### LLM Integration
-- **Provider**: OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`)
-- **Default Model**: `qwen/qwen-2.5-coder-32b-instruct`
-- **Output**: Structured JSON with `overall_fit`, `experience_match`, `skills_match`, `strengths`, `gaps`, `recommendation`
-- **Retry Logic**: Re-prompts once on JSON parse failure with stricter instructions
-- **Known Issue**: Some models (Qwen3 thinking models) don't support `json_object` response format properly
 
 ---
 
@@ -347,11 +337,6 @@ LOCAL_UPLOAD_DIR=uploads
 FRONTEND_URL=http://localhost:3000
 ```
 
-### Frontend Environment
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000  # Set in next.config.js
-```
-
 ---
 
 ## 8. How to Run Locally (Development)
@@ -378,7 +363,7 @@ cd frontend
 npm install                            # One-time
 npm run dev                            # Starts on http://localhost:3000
 
-# 4. (Optional) Start Celery worker for background processing
+# 4. Start Celery worker for background processing
 cd backend
 celery -A app.workers.celery_app worker --loglevel=info
 ```
@@ -389,113 +374,39 @@ The backend **MUST** be run from the `backend/` directory:
 cd e:\new\AI_Resume_Matcher--main\backend
 uvicorn app.main:app --reload --port 8000
 ```
-Running from the project root causes `ModuleNotFoundError: No module named 'app'`.
-
-### Database Auto-Creation
-In development mode (`ENVIRONMENT=development`), tables are auto-created on startup via `Base.metadata.create_all`. No need to run Alembic migrations manually in dev.
 
 ---
 
 ## 9. Known Issues & Historical Bugs
 
-### Resolved Issues (from past conversations)
-
+### Resolved Issues
 | Issue | Root Cause | Fix Applied |
 |-------|-----------|-------------|
-| **`ModuleNotFoundError: No module named 'app'`** | Running uvicorn from wrong directory (project root instead of `backend/`) | Must `cd backend` before running uvicorn |
-| **SQLAlchemy mapper errors at startup** | Missing model imports in `models/__init__.py` | All models now imported in `__init__.py` |
-| **`server_default` incompatibility** | Using Python enum values in `server_default` with asyncpg | Changed to string literals (e.g., `server_default="false"`) |
-| **User registration failures** | Circular model dependencies + enum column issues | Fixed import order and enum definitions |
-| **CORS blocking frontend requests** | `localhost:3000` not in allowed origins | Added `localhost:3000` and `127.0.0.1:3000` to CORS in dev mode |
-| **Resume upload "failed to fetch"** | Backend not running / CORS misconfigured | Fixed CORS + ensured backend reachable |
-| **LLM JSON parse failures** | Qwen3 thinking models wrapping output in markdown | Added regex to strip ```json fences; retry with stricter prompt |
-| **Analysis stream race condition** | Frontend calling API before backend stream ready | Added proper state management + error boundaries |
-| **OpenRouter rate limits** | Too many concurrent requests | Added model-switching fallback logic |
-
-### Current Known Issues (as of 2026-05-03)
-
-1. **Backend CWD sensitivity** — Must always run `uvicorn` from `backend/` directory
-2. **Celery optional** — If Celery worker isn't running, match pipeline dispatch fails silently (match stays in `pending` status)
-3. **spaCy model required** — `en_core_web_md` must be downloaded: `python -m spacy download en_core_web_md`
-4. **BERT model download** — First run downloads `all-MiniLM-L6-v2` (~80MB), may timeout on slow connections
-5. **Legacy files** — `backend/app.py`, `matcher.py`, `parser.py`, etc. are from pre-refactor and NOT used by the current enterprise architecture
+| **`ModuleNotFoundError`** | Running uvicorn from wrong directory | Must `cd backend` before running uvicorn |
+| **SQLAlchemy mapper errors** | Missing model imports | All models now imported in `__init__.py` |
+| **`server_default` errors** | Python enum values in asyncpg | Changed to string literals (`"false"`) |
+| **Large Git Commits** | Next.js binaries not in `.gitignore` | Ignored `node_modules` & `.next`, cleared git cache |
+| **Celery Tasks Not Found** | Running stale Celery worker | Required `CTRL+C` & restart of Celery worker terminal |
+| **Router ImportError** | Celery tasks placed in `api/v1/rewriter.py`| Moved logic to `workers/`, exposed correct FastAPI endpoints |
 
 ---
 
-## 10. Architecture Patterns
-
-### Multi-Tenancy
-- Every user belongs to a `Tenant` (workspace/organization)
-- Registration auto-creates a personal tenant if none specified
-- All data queries should be scoped by `tenant_id` for proper isolation
-
-### Soft Deletes
-- Users, Resumes, Tenants use `SoftDeleteMixin` with `deleted_at` column
-- Queries filter by `deleted_at.is_(None)` to exclude soft-deleted records
-
-### Service Layer
-- API routes delegate to services (`services/`) for business logic
-- Services use the async SQLAlchemy session pattern
-
-### Async Everything
-- Database: `asyncpg` + SQLAlchemy async sessions
-- HTTP: `httpx.AsyncClient` for LLM API calls
-- Celery bridge: Tasks create new event loops for async execution
-
-### JWT Architecture
-- Access tokens: Short-lived (15min), contain `sub` (user_id), `role`, `tenant_id`
-- Refresh tokens: Long-lived (30 days), opaque hex, stored as SHA-256 hash in DB
-- Token rotation: Old refresh token revoked on each refresh
-
----
-
-## 11. Design System (Frontend)
-
-- **Theme**: Dark mode only (HSL-based CSS custom properties)
-- **Colors**: Deep navy background (`222 47% 5%`), blue primary (`217 91% 60%`), green accent (`160 60% 52%`)
-- **Typography**: Inter (body) + JetBrains Mono (code)
-- **Components**: Glassmorphism cards, gradient text, score ring animations
-- **Score Colors**: Excellent (green `#3dd68c`), Good (yellow `#f5c842`), Moderate (orange `#f58442`), Low (red `#f54242`)
-
----
-
-## 12. Conversation History Summary
+## 10. Conversation History Summary
 
 | # | Date | Topic | Key Outcome |
 |---|------|-------|-------------|
 | 1 | Apr 25 | Initial setup & dependency installation | Fixed CORS, PDF parsing bug |
 | 2 | Apr 25 | E2E pipeline testing | Validated full analysis pipeline |
 | 3 | Apr 26 | Deployment finalization | Fixed cross-platform DB models, non-Docker setup |
-| 4 | Apr 26 | Server debugging | Fixed race condition in analysis stream, Qwen3 model compat |
+| 4 | Apr 26 | Server debugging | Fixed race condition in analysis stream |
 | 5 | Apr 27 | Stream fix | Fixed premature quit, fabrication check exceptions |
 | 6 | Apr 29 | Startup commands | Documented manual launch sequence |
-| 7 | Apr 29 | Port 8000 errors | Added LLM model-switching fallback, env standardization |
+| 7 | Apr 29 | Port 8000 errors | Added LLM model-switching fallback |
 | 8 | Apr 30 | Fetch errors | Fixed API communication failures |
-| 9 | May 02 | Enterprise refactor | Built full enterprise architecture (current codebase) |
-| 10 | May 02-03 | Registration bugs | Fixed SQLAlchemy enum mapping, `server_default` issues |
+| 9 | May 02 | Enterprise refactor | Built full enterprise architecture |
+| 10 | May 02-03 | Registration bugs | Fixed SQLAlchemy enum mapping issues |
+| 11 | May 04 | Git Push & Secrets check | Verified no hardcoded API keys, updated `.gitignore` for Next.js, pushed to GitHub successfully |
+| 12 | May 04-05 | **Auto-Rewrite Feature** | Built a complete UI/API pipeline for automatically rewriting a low-scoring resume via OpenRouter AI. Included a "Download .txt" feature, new Celery Tasks, and updated Database schemas. |
 
 ### Evolution
-The project evolved from a simple single-file Flask/Streamlit app to a **full enterprise FastAPI + Next.js architecture** with multi-tenancy, JWT auth, Celery workers, and a comprehensive ML scoring pipeline. The enterprise refactor (conversation #9) was the major architectural change.
-
----
-
-## 13. Quick Reference for Continuing Work
-
-### To fix something:
-1. Check if backend is running from correct CWD (`backend/`)
-2. Check Docker containers: `docker-compose up db redis -d`
-3. Check `.env` files (backend has its own `.env`)
-4. Check `models/__init__.py` if adding new models
-
-### To add a new feature:
-1. Add model in `backend/app/models/` → import in `models/__init__.py`
-2. Add schema in `backend/app/schemas/`
-3. Add service in `backend/app/services/`
-4. Add API route in `backend/app/api/v1/` → register in `router.py`
-5. Add frontend page in `frontend/src/app/`
-
-### To debug:
-- Backend logs: structured JSON via `structlog` with trace IDs
-- Health check: `GET http://localhost:8000/health`
-- API docs: `http://localhost:8000/docs` (Swagger UI, dev only)
-- DB test: `python backend/check_db.py`
+The project evolved from a simple single-file Flask/Streamlit app to a **full enterprise FastAPI + Next.js architecture** with multi-tenancy, JWT auth, Celery workers, a comprehensive ML scoring pipeline, and fully automated AI-driven resume generation.
