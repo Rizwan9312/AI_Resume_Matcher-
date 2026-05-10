@@ -43,3 +43,9 @@ class JobLibraryItem(JobResponse):
 
 class JobLibraryResponse(BaseModel):
     jobs: list[JobLibraryItem]
+
+class KeywordExtractRequest(BaseModel):
+    raw_text: str = Field(..., max_length=50000)
+
+class KeywordExtractResponse(BaseModel):
+    keywords: list[str]

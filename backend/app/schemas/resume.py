@@ -15,6 +15,7 @@ class ResumeResponse(BaseModel):
     file_size_bytes: int
     mime_type: str
     parse_status: str
+    parsed_text: Optional[str] = None
     parsed_sections: Optional[dict] = None
     created_at: datetime
     version_number: int = 1

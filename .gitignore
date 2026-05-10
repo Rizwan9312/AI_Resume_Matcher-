@@ -31,3 +31,9 @@ node_modules/
 .next/
 frontend/out/
 *.log
+
+# Docker WSL data
+Docker/
+
+# Local reference files
+summary.md

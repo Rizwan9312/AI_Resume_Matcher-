@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -101,6 +103,39 @@ async def upload_resume(
         for r in existing_resumes:
             r.is_active = False
 
+    # Parse the resume inline before saving
+    parsed_text = ""
+    parsed_sections = {}
+    parse_status = ParseStatus.PENDING
+
+    try:
+        import tempfile
+        from app.ml.section_parser import parse_resume
+
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        parsed = parse_resume(tmp_path, ext)
+        os.unlink(tmp_path)
+
+        if parsed.get("full_text"):
+            parsed_text = parsed["full_text"]
+            parsed_sections = parsed.get("sections", {})
+            parse_status = ParseStatus.DONE
+            logger.info("file.parsed", chars=len(parsed_text), sections=list(parsed_sections.keys()))
+        else:
+            parse_status = ParseStatus.FAILED
+            logger.warning("file.parse_empty", filename=file.filename)
+    except Exception as exc:
+        parse_status = ParseStatus.FAILED
+        logger.error("file.parse_failed", filename=file.filename, error=str(exc))
+        # Clean up temp file if it exists
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
+
     resume = Resume(
         user_id=current_user.id,
         tenant_id=current_user.tenant_id,
@@ -108,16 +143,18 @@ async def upload_resume(
         s3_key=s3_key,
         file_size_bytes=len(content),
         mime_type=get_mime_type(ext),
-        parse_status=ParseStatus.PENDING,
+        parse_status=parse_status,
+        parsed_text=parsed_text or None,
+        parsed_sections=parsed_sections or None,
         version_number=version_number,
         parent_resume_id=parent_resume_id,
         is_active=True,
     )
     session.add(resume)
-    await session.commit()      # ← changed from flush() to commit()
-    await session.refresh(resume)  # ← reload DB-generated fields
+    await session.commit()
+    await session.refresh(resume)
 
-    logger.info("file.upload", resume_id=str(resume.id), size=len(content))
+    logger.info("file.upload", resume_id=str(resume.id), size=len(content), parse_status=parse_status.value)
     return ResumeResponse.model_validate(resume)
 
 

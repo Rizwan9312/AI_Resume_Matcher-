@@ -20,8 +20,11 @@ from app.schemas.job import (
     JobResponse,
     JobUpdateTagsRequest,
     JobLibraryItem,
-    JobLibraryResponse
+    JobLibraryResponse,
+    KeywordExtractRequest,
+    KeywordExtractResponse
 )
+from app.ml.keyword_extractor import extract_all_keywords
 from app.utils.logger import get_logger
 
 logger = get_logger("jobs_api")
@@ -176,5 +179,21 @@ async def get_job(
         raise HTTPException(404, detail={"code": "not_found", "message": "Job not found"})
     if job.user_id != current_user.id:
         raise HTTPException(403, detail={"code": "forbidden", "message": "Access denied"})
-
     return JobResponse.model_validate(job)
+
+
+@router.post("/extract-keywords", response_model=KeywordExtractResponse)
+async def extract_keywords(
+    body: KeywordExtractRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Extract keywords synchronously from job description text."""
+    try:
+        result = extract_all_keywords(body.raw_text)
+        return KeywordExtractResponse(keywords=result.get("all_keywords", []))
+    except Exception as exc:
+        logger.error("jobs.extract_keywords_failed", error=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to extract keywords",
+        )

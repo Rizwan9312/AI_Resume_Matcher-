@@ -15,7 +15,6 @@ export interface TokenResponse {
   token_type: string;
   user: User;
 }
-
 export interface Resume {
   id: string;
   filename: string;
@@ -24,6 +23,9 @@ export interface Resume {
   parse_status: "pending" | "done" | "failed";
   parsed_sections?: Record<string, string>;
   created_at: string;
+  parent_resume_id?: string | null;
+  is_active?: boolean;               
+  version_number?: number;     
 }
 
 export interface Job {

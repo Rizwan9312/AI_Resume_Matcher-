@@ -408,5 +408,5 @@ uvicorn app.main:app --reload --port 8000
 | 11 | May 04 | Git Push & Secrets check | Verified no hardcoded API keys, updated `.gitignore` for Next.js, pushed to GitHub successfully |
 | 12 | May 04-05 | **Auto-Rewrite Feature** | Built a complete UI/API pipeline for automatically rewriting a low-scoring resume via OpenRouter AI. Included a "Download .txt" feature, new Celery Tasks, and updated Database schemas. |
 
-### Evolution
+### Evolution 
 The project evolved from a simple single-file Flask/Streamlit app to a **full enterprise FastAPI + Next.js architecture** with multi-tenancy, JWT auth, Celery workers, a comprehensive ML scoring pipeline, and fully automated AI-driven resume generation.

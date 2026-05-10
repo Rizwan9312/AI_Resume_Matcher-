@@ -23,12 +23,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     # ── Windows fix: prefork doesn't work on Windows/Python 3.13 ──
     worker_pool="solo" if sys.platform == "win32" else "prefork",
-    # ── Task routing ─────────────────────────────────────────────
-    task_routes={
-        "app.workers.match_tasks.*": {"queue": "matches"},
-        "app.workers.rewrite_tasks.*": {"queue": "rewrites"},
-        "app.workers.notification_tasks.*": {"queue": "notifications"},
-    },
+    # ── Task routing (all tasks use the default 'celery' queue for local dev) ──
 )
 
 celery_app.autodiscover_tasks([

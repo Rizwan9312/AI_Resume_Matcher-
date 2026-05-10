@@ -3,12 +3,14 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { RewriteSession } from "@/types";
+import GlassCard from "@/components/GlassCard";
+import Button from "@/components/Button";
 
 const STEPS = [
   { label: "Analyzing job description", pct: 15 },
-  { label: "Evaluating original resume", pct: 35 },
-  { label: "Generating ATS-optimized content", pct: 70 },
-  { label: "Finalizing formatting", pct: 90 },
+  { label: "Extracting key requirements", pct: 35 },
+  { label: "Rewriting experience section", pct: 70 },
+  { label: "Optimizing for ATS", pct: 90 },
 ];
 
 function ProcessingScreen() {
@@ -40,51 +42,55 @@ function ProcessingScreen() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6">
       <div className="w-full max-w-md">
-        <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-3xl mx-auto mb-6">
-          ✍️
+        {/* Pulsing orb */}
+        <div className="w-20 h-20 rounded-full bg-ag-accent/10 border border-ag-accent/20 flex items-center justify-center mx-auto mb-8 animate-pulse-glow">
+          <span className="text-3xl">✍️</span>
         </div>
-        <h2 className="text-xl font-bold text-center mb-1">Rewriting your resume</h2>
-        <p className="text-sm text-muted-foreground text-center mb-8">
+
+        <h2 className="font-syne font-bold text-xl text-center text-ag-text mb-1">
+          Rewriting your resume
+        </h2>
+        <p className="text-sm text-ag-text-secondary text-center mb-8">
           Our AI is completely overhauling your resume. This may take up to 2 minutes...
         </p>
 
-        <div className="w-full bg-muted rounded-full h-2 mb-2 overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${displayPct}%` }}
-          />
+        {/* Indeterminate-style progress */}
+        <div className="w-full bg-white/[0.04] rounded-full h-2 mb-2 overflow-hidden">
+          <div className="h-full rounded-full progress-fill" style={{ width: `${displayPct}%` }} />
         </div>
-        <p className="text-xs text-muted-foreground text-right mb-8">{displayPct}%</p>
+        <p className="text-xs text-ag-text-muted text-right mb-8 font-mono">{displayPct}%</p>
 
+        {/* Step labels */}
         <div className="grid grid-cols-1 gap-3">
           {STEPS.map((step, i) => {
             const done = activeStep > i + 1;
             const active = activeStep === i + 1;
             return (
-              <div
+              <GlassCard
                 key={step.label}
-                className={`glass-card rounded-xl px-4 py-3 flex items-center gap-3 transition-all duration-300 ${
-                  active ? "border-primary/40" : done ? "border-emerald-400/30" : ""
+                hover={false}
+                className={`rounded-xl px-4 py-3 flex items-center gap-3 transition-all duration-300 ${
+                  active ? "border-ag-accent/40" : done ? "border-ag-success/30" : ""
                 }`}
               >
                 <div
                   className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all duration-300 ${
                     done
-                      ? "bg-emerald-400"
+                      ? "bg-ag-success"
                       : active
-                      ? "bg-primary animate-pulse"
-                      : "bg-muted-foreground/30"
+                      ? "bg-ag-accent animate-pulse"
+                      : "bg-white/[0.1]"
                   }`}
                 />
                 <span
                   className={`text-sm transition-colors duration-300 ${
-                    active || done ? "text-foreground" : "text-muted-foreground"
+                    active || done ? "text-ag-text" : "text-ag-text-muted"
                   }`}
                 >
                   {step.label}
                 </span>
-                {done && <span className="ml-auto text-emerald-400 text-sm">✓</span>}
-              </div>
+                {done && <span className="ml-auto text-ag-success text-sm">✓</span>}
+              </GlassCard>
             );
           })}
         </div>
@@ -103,10 +109,9 @@ export default function RewritePage() {
 
   useEffect(() => {
     if (!params.match_id) return;
-    
+
     const startRewrite = async () => {
       try {
-        // First request creates the session using the match_id
         const res = await api.post("/rewrites", { match_id: params.match_id });
         setSession(res.data);
       } catch (err: any) {
@@ -153,107 +158,128 @@ export default function RewritePage() {
     URL.revokeObjectURL(url);
   };
 
+  /* ── State: Error ──────────────────────────────────────── */
   if (error) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-20 text-center">
-        <div className="text-5xl mb-6">❌</div>
-        <h2 className="text-2xl font-bold text-destructive mb-4">Rewrite Failed</h2>
-        <p className="text-muted-foreground mb-8">{error}</p>
-        <button onClick={() => router.back()} className="px-6 py-2 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80">
-          Go Back
-        </button>
+        <GlassCard className="p-10" hover={false}>
+          <div className="text-5xl mb-6">❌</div>
+          <h2 className="font-syne font-bold text-2xl text-ag-danger mb-4">Rewrite Failed</h2>
+          <p className="text-ag-text-secondary mb-8">{error}</p>
+          <Button variant="ghost" onClick={() => router.back()}>Go Back</Button>
+        </GlassCard>
       </div>
     );
   }
 
+  /* ── State: Processing ─────────────────────────────────── */
   if (!session || session.status === "pending" || session.status === "processing") {
     return <ProcessingScreen />;
   }
 
+  /* ── State: Failed ─────────────────────────────────────── */
   if (session.status === "failed") {
     return (
       <div className="max-w-2xl mx-auto px-6 py-20 text-center">
-        <div className="text-5xl mb-6">❌</div>
-        <h2 className="text-2xl font-bold text-destructive mb-4">Rewrite Failed</h2>
-        <p className="text-muted-foreground mb-8">An error occurred while rewriting your resume.</p>
-        <button onClick={() => router.back()} className="px-6 py-2 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/80">
-          Go Back
-        </button>
+        <GlassCard className="p-10" hover={false}>
+          <div className="text-5xl mb-6">❌</div>
+          <h2 className="font-syne font-bold text-2xl text-ag-danger mb-4">Rewrite Failed</h2>
+          <p className="text-ag-text-secondary mb-8">An error occurred while rewriting your resume.</p>
+          <Button variant="ghost" onClick={() => router.back()}>Go Back</Button>
+        </GlassCard>
       </div>
     );
   }
 
+  /* ── State: Complete ───────────────────────────────────── */
   const { rewrites } = session;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">✨ Your Rewritten Resume</h1>
-          <p className="text-muted-foreground mt-1">Optimized for maximum ATS visibility and impact.</p>
+          <h1 className="font-syne font-bold text-3xl text-ag-text">✨ Your Rewritten Resume</h1>
+          <p className="text-ag-text-secondary mt-1 text-sm">
+            Optimized for maximum ATS visibility and impact.
+          </p>
         </div>
-        <button 
-          onClick={handleDownload}
-          className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all shadow-lg hover:shadow-primary/25 flex items-center gap-2"
-        >
+        <Button onClick={handleDownload} variant="primary" size="md">
           📥 Download .txt
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="glass-card rounded-2xl p-8">
-            <h3 className="text-sm uppercase tracking-widest text-muted-foreground mb-6">Document View</h3>
-            <div className="whitespace-pre-wrap font-mono text-sm bg-background/50 p-6 rounded-xl border border-border/50 h-[800px] overflow-y-auto">
+        {/* Main document */}
+        <div className="lg:col-span-2">
+          <GlassCard className="p-8" hover={false}>
+            <div className="flex items-center gap-2 mb-6">
+              <h3 className="text-xs uppercase tracking-widest text-ag-text-muted">Document View</h3>
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-ag-accent/10 text-ag-accent border border-ag-accent/20">
+                AI-generated
+              </span>
+            </div>
+            <div className="whitespace-pre-wrap font-mono text-sm bg-bg/50 p-6 rounded-xl border border-white/[0.04] h-[800px] overflow-y-auto text-ag-text-secondary leading-relaxed">
               {rewrites?.rewritten_resume || "No resume text available."}
             </div>
-          </div>
+          </GlassCard>
         </div>
 
+        {/* Sidebar */}
         <div className="space-y-6">
-          <div className="glass-card rounded-2xl p-6">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">📈 Expected Impact</h3>
-            <div className="text-2xl font-bold text-emerald-400">
+          {/* Score improvement */}
+          <GlassCard className="p-6" hover={false}>
+            <h3 className="text-xs uppercase tracking-widest text-ag-text-muted mb-4">📈 Expected Impact</h3>
+            <div className="text-2xl font-bold text-ag-success font-mono">
               {rewrites?.estimated_score_improvement || "+ N/A"}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">Score Improvement</p>
-          </div>
+            <p className="text-sm text-ag-text-muted mt-1">Score Improvement</p>
+          </GlassCard>
 
-          <div className="glass-card rounded-2xl p-6">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">💡 Overall Suggestions</h3>
+          {/* Suggestions */}
+          <GlassCard className="p-6" hover={false}>
+            <h3 className="text-xs uppercase tracking-widest text-ag-text-muted mb-4">💡 Overall Suggestions</h3>
             <ul className="space-y-3">
               {(rewrites?.overall_suggestions || []).map((s, i) => (
                 <li key={i} className="text-sm flex gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span className="text-muted-foreground">{s}</span>
+                  <span className="text-ag-accent mt-0.5">•</span>
+                  <span className="text-ag-text-secondary">{s}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </GlassCard>
 
-          <div className="glass-card rounded-2xl p-6">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">🎯 ATS Keywords Added</h3>
+          {/* ATS Keywords */}
+          <GlassCard className="p-6" hover={false}>
+            <h3 className="text-xs uppercase tracking-widest text-ag-text-muted mb-4">🎯 ATS Keywords Added</h3>
             <div className="flex flex-wrap gap-2">
               {(rewrites?.ats_keywords_added || []).map((kw) => (
-                <span key={kw} className="px-2.5 py-1 rounded-md text-xs bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
+                <span key={kw} className="px-2.5 py-1 rounded-md text-xs bg-ag-success/10 text-ag-success border border-ag-success/20">
                   {kw}
                 </span>
               ))}
             </div>
-          </div>
+          </GlassCard>
 
-          <div className="glass-card rounded-2xl p-6">
-            <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">🛠️ Sections Improved</h3>
+          {/* Sections improved */}
+          <GlassCard className="p-6" hover={false}>
+            <h3 className="text-xs uppercase tracking-widest text-ag-text-muted mb-4">🛠️ Sections Improved</h3>
             <div className="space-y-4">
               {Object.entries(rewrites?.sections_improved || {}).map(([section, desc]) => (
                 <div key={section}>
-                  <h4 className="text-xs font-semibold capitalize mb-1 text-foreground">{section}</h4>
-                  <p className="text-sm text-muted-foreground">{desc as string}</p>
+                  <h4 className="text-xs font-semibold capitalize mb-1 text-ag-text">{section}</h4>
+                  <p className="text-sm text-ag-text-secondary">{desc as string}</p>
                 </div>
               ))}
             </div>
-          </div>
+          </GlassCard>
         </div>
+      </div>
+
+      {/* Full-width download */}
+      <div className="mt-8">
+        <Button onClick={handleDownload} variant="primary" size="lg" className="w-full">
+          📥 Download Optimized Resume (.txt)
+        </Button>
       </div>
     </div>
   );
