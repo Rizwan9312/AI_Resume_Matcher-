@@ -2,7 +2,11 @@
 
 export default function FloatingOrbs() {
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      style={{ opacity: "var(--orb-opacity)" }}
+    >
       {/* Large indigo orb — top-left */}
       <div
         className="animate-float absolute rounded-full"

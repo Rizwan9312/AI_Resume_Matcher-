@@ -5,6 +5,7 @@ import api from "@/lib/api";
 import { RewriteSession } from "@/types";
 import GlassCard from "@/components/GlassCard";
 import Button from "@/components/Button";
+import JobRecommendations from "@/components/JobRecommendations";
 
 const STEPS = [
   { label: "Analyzing job description", pct: 15 },
@@ -281,6 +282,15 @@ export default function RewritePage() {
           📥 Download Optimized Resume (.txt)
         </Button>
       </div>
+
+      {/* Job Recommendations — after rewrite completion */}
+      {session.resume_id && (
+        <JobRecommendations
+          resumeId={session.resume_id}
+          matchResultId={params.match_id as string}
+          autoTrigger={false}
+        />
+      )}
     </div>
   );
 }

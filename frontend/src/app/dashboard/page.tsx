@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import GlassCard from "@/components/GlassCard";
 import Button from "@/components/Button";
+import JobRecommendations from "@/components/JobRecommendations";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ resumes: 0, matches: 0, avgScore: 0, rewrites: 0 });
@@ -132,6 +133,16 @@ export default function DashboardPage() {
               ))}
             </div>
           </GlassCard>
+        </div>
+      )}
+
+      {/* Job Recommendations — show for the most recent match's resume */}
+      {recentMatches.length > 0 && recentMatches[0].resume_id && (
+        <div className="mb-10">
+          <JobRecommendations
+            resumeId={recentMatches[0].resume_id}
+            autoTrigger={true}
+          />
         </div>
       )}
 

@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "qwen/qwen-2.5-coder-32b-instruct"
     BERT_MODEL_NAME: str = "all-MiniLM-L6-v2"
 
+    # ── JSearch (LinkedIn Jobs) ──────────────────────────────────
+    JSEARCH_API_KEY: str = ""
+
     # ── File Storage ─────────────────────────────────────────────
     STORAGE_BACKEND: str = "local"  # "local" or "s3"
     LOCAL_UPLOAD_DIR: str = "uploads"

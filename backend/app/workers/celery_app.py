@@ -30,4 +30,5 @@ celery_app.autodiscover_tasks([
     "app.workers.match_tasks",
     "app.workers.rewrite_tasks",
     "app.workers.notification_tasks",
+    "app.workers.linkedin_tasks",
 ])

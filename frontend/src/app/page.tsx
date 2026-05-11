@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
-import FloatingOrbs from "@/components/FloatingOrbs";
+import NetworkBackground from "@/components/NetworkBackground";
 import GlassCard from "@/components/GlassCard";
 import ScoreRing from "@/components/ScoreRing";
 import Button from "@/components/Button";
+import ThemeToggle from "@/components/ThemeToggle";
 
 /* ── Navbar ─────────────────────────────────────────────── */
 function LandingNav() {
@@ -20,7 +21,7 @@ function LandingNav() {
     <nav
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "border-b border-white/[0.06] bg-[#050508]/80 backdrop-blur-2xl"
+          ? "border-b border-[var(--border-color)] bg-[var(--nav-bg)] backdrop-blur-2xl"
           : "bg-transparent"
       }`}
     >
@@ -32,6 +33,7 @@ function LandingNav() {
           <span className="w-1.5 h-1.5 rounded-full bg-ag-accent animate-pulse-glow" />
         </Link>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link href="/login">
             <Button variant="ghost" size="sm">Sign In</Button>
           </Link>
@@ -48,10 +50,10 @@ function LandingNav() {
 function HeroSection() {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center pt-16">
-      <FloatingOrbs />
+      <NetworkBackground />
 
       {/* Badge */}
-      <div className="relative z-10 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-surface/60 backdrop-blur-md mb-8 animate-fade-in-up">
+      <div className="relative z-10 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[var(--border-color)] bg-[var(--glass-bg)] backdrop-blur-md mb-8 animate-fade-in-up">
         <span className="text-ag-accent text-xs">✦</span>
         <span className="text-xs font-medium text-ag-text-secondary tracking-wider uppercase">
           AI-Powered Resume Intelligence
@@ -85,7 +87,7 @@ function HeroSection() {
       </div>
 
       {/* Trust bar */}
-      <div className="relative z-10 inline-flex items-center gap-0 rounded-full border border-white/[0.06] bg-surface/40 backdrop-blur-sm animate-fade-in-up"
+      <div className="relative z-10 inline-flex items-center gap-0 rounded-full border border-[var(--border-color)] bg-[var(--glass-bg)] backdrop-blur-sm animate-fade-in-up"
            style={{ animationDelay: "0.4s" }}>
         {[
           "10,000+ Resumes Analyzed",
@@ -93,7 +95,7 @@ function HeroSection() {
           "Free to Start",
         ].map((stat, i) => (
           <div key={stat} className="flex items-center">
-            {i > 0 && <div className="w-px h-4 bg-white/[0.08]" />}
+            {i > 0 && <div className="w-px h-4 bg-[var(--divider)]" />}
             <span className="px-5 py-2.5 text-xs text-ag-text-secondary font-medium whitespace-nowrap">
               {stat}
             </span>
@@ -125,7 +127,7 @@ function HowItWorks() {
             {/* Glowing top border */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-ag-accent/60 via-ag-cyan/30 to-transparent" />
             {/* Decorative watermark number */}
-            <span className="absolute top-4 right-4 font-syne text-[80px] font-extrabold leading-none text-white/[0.04] pointer-events-none select-none">
+            <span className="absolute top-4 right-4 font-syne text-[80px] font-extrabold leading-none pointer-events-none select-none" style={{ color: "var(--watermark)" }}>
               {step.num}
             </span>
             <span className="section-label text-ag-accent">{step.num}</span>
@@ -166,7 +168,7 @@ function FeaturesSection() {
             ].map((bar) => (
               <div key={bar.label} className="flex items-center gap-4">
                 <span className="text-xs text-ag-text-secondary w-28 font-mono">{bar.label}</span>
-                <div className="flex-1 h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-[var(--track-bg)] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-1000"
                     style={{ width: `${bar.value}%`, background: bar.color }}
@@ -217,7 +219,7 @@ function ScorePreview() {
               { label: "LLM", val: 80, color: "#FFB800" },
             ].map((m) => (
               <div key={m.label} className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-[var(--track-bg)] rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${m.val}%`, background: m.color }} />
                 </div>
                 <span className="text-[10px] font-mono" style={{ color: m.color }}>{m.val}</span>
@@ -243,7 +245,7 @@ function ScorePreview() {
           { quote: "Best resume tool I've used. The BERT scoring is scarily accurate.", role: "Data Scientist" },
         ].map((t) => (
           <GlassCard key={t.role} className="p-6">
-            <p className="text-sm text-ag-text-secondary leading-relaxed italic mb-4">"{t.quote}"</p>
+            <p className="text-sm text-ag-text-secondary leading-relaxed italic mb-4">&quot;{t.quote}&quot;</p>
             <p className="text-xs text-ag-text-muted">— {t.role}</p>
           </GlassCard>
         ))}
@@ -277,7 +279,7 @@ function CtaBanner() {
 /* ── Footer ─────────────────────────────────────────────── */
 function Footer() {
   return (
-    <footer className="border-t border-white/[0.06] py-8">
+    <footer className="border-t border-[var(--border-color)] py-8">
       <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
         <span className="font-syne font-bold text-sm text-ag-text-secondary">ResumeIQ</span>
         <div className="flex items-center gap-6 text-xs text-ag-text-muted">

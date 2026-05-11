@@ -39,9 +39,9 @@ export default function ScoreRing({
   }, []);
 
   const getColor = () => {
-    if (score >= 80) return "#00FF88";
-    if (score >= 60) return "#FFB800";
-    return "#FF4D6D";
+    if (score >= 80) return "var(--color-success)";
+    if (score >= 60) return "var(--color-warning)";
+    return "var(--color-danger)";
   };
 
   return (
@@ -59,7 +59,7 @@ export default function ScoreRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
+          stroke="var(--ring-track)"
           strokeWidth={strokeWidth}
         />
         {/* Animated foreground arc */}
@@ -75,7 +75,7 @@ export default function ScoreRing({
           strokeDashoffset={visible ? offset : circumference}
           style={{
             transition: "stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)",
-            filter: `drop-shadow(0 0 6px ${getColor()}40)`,
+            filter: `drop-shadow(0 0 6px color-mix(in srgb, ${getColor()} 25%, transparent))`,
           }}
         />
       </svg>

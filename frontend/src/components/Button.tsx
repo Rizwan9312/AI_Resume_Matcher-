@@ -10,7 +10,7 @@ const variants = {
   primary:
     "bg-gradient-to-r from-[#6C63FF] to-[#00D4FF] text-white shadow-glow hover:shadow-glow-lg hover:brightness-110",
   ghost:
-    "bg-transparent border border-white/[0.12] text-white hover:bg-white/[0.05] hover:border-white/[0.2]",
+    "bg-transparent border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--border-subtle)] hover:border-[var(--glass-hover-border)]",
   danger:
     "bg-[#FF4D6D] text-white hover:bg-[#FF4D6D]/90",
 };

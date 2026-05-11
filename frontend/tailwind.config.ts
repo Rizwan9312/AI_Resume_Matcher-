@@ -6,33 +6,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* Legacy HSL-based tokens (kept for compatibility) */
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        card: "hsl(var(--card))",
-        "card-foreground": "hsl(var(--card-foreground))",
-        primary: "hsl(var(--primary))",
-        "primary-foreground": "hsl(var(--primary-foreground))",
-        secondary: "hsl(var(--secondary))",
-        muted: "hsl(var(--muted))",
-        "muted-foreground": "hsl(var(--muted-foreground))",
-        accent: "hsl(var(--accent))",
-        destructive: "hsl(var(--destructive))",
-        border: "hsl(var(--border))",
-        ring: "hsl(var(--ring))",
-
-        /* Antigravity design tokens */
-        bg: "#050508",
-        surface: "#0D0D14",
-        "surface-2": "#13131E",
-        "ag-accent": "#6C63FF",
-        "ag-cyan": "#00D4FF",
-        "ag-success": "#00FF88",
-        "ag-warning": "#FFB800",
-        "ag-danger": "#FF4D6D",
-        "ag-text": "#F0F0FF",
-        "ag-text-secondary": "#8888AA",
-        "ag-text-muted": "#444466",
+        /* Variable-driven tokens — auto-adapt to light/dark */
+        bg: "var(--background)",
+        surface: "var(--surface)",
+        "surface-2": "var(--surface-2)",
+        "ag-accent": "var(--accent-primary)",
+        "ag-cyan": "var(--accent-cyan)",
+        "ag-success": "var(--color-success)",
+        "ag-warning": "var(--color-warning)",
+        "ag-danger": "var(--color-danger)",
+        "ag-text": "var(--text-primary)",
+        "ag-text-secondary": "var(--text-secondary)",
+        "ag-text-muted": "var(--text-muted)",
       },
       borderRadius: {
         lg: "var(--radius)",

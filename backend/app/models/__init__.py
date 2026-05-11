@@ -7,3 +7,4 @@ from app.models.job_description import JobDescription  # noqa
 from app.models.match_result import MatchResult, MatchStatus  # noqa
 from app.models.rewrite_session import RewriteSession, RewriteStatus  # noqa
 from app.models.subscription import Subscription, UsageEvent, SubscriptionStatus  # noqa
+from app.models.job_recommendation import JobRecommendation  # noqa

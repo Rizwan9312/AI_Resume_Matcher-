@@ -293,6 +293,22 @@ Return ONLY valid JSON (no markdown, no explanation):
                 rw.status = RewriteStatus.COMPLETE
                 await session.commit()
 
+                # === NEW: trigger LinkedIn job fetch after rewrite is saved ===
+                try:
+                    from app.workers.linkedin_tasks import fetch_linkedin_jobs
+                    rewritten_text = ""
+                    if isinstance(rw.rewrites, dict):
+                        rewritten_text = rw.rewrites.get("rewritten_resume", resume_text)
+                    fetch_linkedin_jobs.delay(
+                        user_id=str(rw.user_id),
+                        resume_id=str(rw.resume_id),
+                        resume_text=rewritten_text or resume_text,
+                        match_result_id=str(rw.match_id) if rw.match_id else None,
+                    )
+                except Exception as linkedin_exc:
+                    logger.warning("linkedin_trigger.failed", error=str(linkedin_exc))
+                # === END NEW ===
+
                 logger.info("rewrite_full.complete", session_id=session_id)
                 return {"session_id": session_id, "status": "complete"}
 

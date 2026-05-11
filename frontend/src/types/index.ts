@@ -90,3 +90,26 @@ export interface APIError {
   code: string;
   message: string;
 }
+
+export interface JobRecommendation {
+  id: string;
+  job_id: string;
+  job_title: string;
+  employer_name: string;
+  employer_logo?: string;
+  job_publisher: string;
+  job_employment_type: string;
+  job_location: string;
+  job_description: string;
+  job_apply_link: string;
+  job_posted_at: string | null;
+  job_salary_min?: number;
+  job_salary_max?: number;
+  job_salary_currency?: string;
+  relevance_score: number;
+  is_dismissed: boolean;
+  created_at: string;
+  expires_at: string;
+  resume_id: string;
+  match_result_id?: string;
+}

@@ -51,7 +51,9 @@ def register_middleware(app: FastAPI) -> None:
     else:
         origins = [
             "http://localhost:3000",
+            "http://localhost:3001",
             "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001",
             settings.FRONTEND_URL,
         ]
 
@@ -61,6 +63,6 @@ def register_middleware(app: FastAPI) -> None:
         CORSMiddleware,
         allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )  

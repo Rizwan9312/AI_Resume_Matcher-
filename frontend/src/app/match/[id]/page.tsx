@@ -7,6 +7,7 @@ import { MatchResult } from "@/types";
 import GlassCard from "@/components/GlassCard";
 import ScoreRing from "@/components/ScoreRing";
 import Button from "@/components/Button";
+import JobRecommendations from "@/components/JobRecommendations";
 
 const STEPS = [
   { label: "Parsing resume", pct: 20 },
@@ -309,6 +310,13 @@ export default function MatchResultPage() {
           )}
         </GlassCard>
       )}
+
+      {/* Job Recommendations */}
+      <JobRecommendations
+        resumeId={match.resume_id}
+        matchResultId={match.id}
+        autoTrigger={false}
+      />
     </div>
   );
 }

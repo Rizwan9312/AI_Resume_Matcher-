@@ -88,7 +88,8 @@ def extract_all_keywords(text: str) -> dict:
     """Master extractor — runs all methods and returns structured results."""
     hard = extract_hard_skills(text)
     soft = extract_soft_skills(text)
-    nlp_kw = extract_keywords_spacy(text)
+    # Temporarily disabled spacy due to hanging issues on Windows
+    nlp_kw = set()
 
     # Expand with implied skills
     expanded_hard = expand_skills(hard)

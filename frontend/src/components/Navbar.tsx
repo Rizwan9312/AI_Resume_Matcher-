@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clearTokens, getAccessToken } from "@/lib/api";
 import api from "@/lib/api";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Navbar() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function Navbar() {
 
   // For non-dashboard pages (match, rewrite), show a compact top nav
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#050508]/80 backdrop-blur-2xl">
+    <nav className="sticky top-0 z-50 border-b border-[var(--border-color)] bg-[var(--nav-bg)] backdrop-blur-2xl">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link
@@ -71,7 +72,7 @@ export default function Navbar() {
                 className={`px-3 py-1.5 rounded-lg text-[13px] transition-all duration-200 whitespace-nowrap ${
                   active
                     ? "bg-ag-accent/10 text-ag-accent font-medium"
-                    : "text-ag-text-secondary hover:text-ag-text hover:bg-white/[0.03]"
+                    : "text-ag-text-secondary hover:text-ag-text hover:bg-[var(--border-subtle)]"
                 }`}
               >
                 {link.label}
@@ -82,12 +83,13 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-3 flex-shrink-0">
+          <ThemeToggle />
           <div className="w-[28px] h-[28px] rounded-full bg-ag-accent/10 border border-ag-accent/20 flex items-center justify-center text-[11px] font-medium text-ag-accent flex-shrink-0">
             U
           </div>
           <button
             onClick={handleLogout}
-            className="text-[13px] text-ag-text-secondary hover:text-ag-text transition px-2 py-1 rounded-lg hover:bg-white/[0.03]"
+            className="text-[13px] text-ag-text-secondary hover:text-ag-text transition px-2 py-1 rounded-lg hover:bg-[var(--border-subtle)]"
             aria-label="Sign out"
           >
             Sign out

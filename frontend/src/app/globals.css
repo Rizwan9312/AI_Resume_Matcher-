@@ -2,21 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Antigravity Design System ─────────────────────────────── */
+/* ── Antigravity Design System — Light / Dark ─────────────── */
 
 @layer base {
+  /* ── LIGHT MODE (default) ──────────────────────────────── */
   :root {
+    /* Core surfaces */
+    --background: #FFFFFF;
+    --surface: #F5F5F8;
+    --surface-2: #EEEEF4;
+
+    /* Borders */
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-subtle: rgba(0, 0, 0, 0.05);
+
+    /* Accent palette (shared across themes) */
+    --accent-primary: #6C63FF;
+    --accent-cyan: #00D4FF;
+    --color-success: #00C96A;
+    --color-warning: #E5A500;
+    --color-danger: #E0365B;
+
+    /* Text */
+    --text-primary: #111118;
+    --text-secondary: #555566;
+    --text-muted: #999AAA;
+
+    /* Glass card */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.06);
+    --glass-hover-border: rgba(108, 99, 255, 0.2);
+    --glass-hover-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+
+    /* Input */
+    --input-bg: #F5F5F8;
+    --input-border: rgba(0, 0, 0, 0.1);
+    --input-placeholder: #999AAA;
+
+    /* Scrollbar */
+    --scrollbar-track: #FAFAFA;
+    --scrollbar-thumb: rgba(0, 0, 0, 0.1);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
+
+    /* Grid lines */
+    --grid-color: rgba(108, 99, 255, 0.04);
+
+    /* Progress bar track */
+    --track-bg: rgba(0, 0, 0, 0.06);
+
+    /* Divider */
+    --divider: rgba(0, 0, 0, 0.06);
+
+    /* Nav */
+    --nav-bg: rgba(255, 255, 255, 0.85);
+
+    /* Watermark text */
+    --watermark: rgba(0, 0, 0, 0.03);
+
+    /* Score ring track */
+    --ring-track: rgba(0, 0, 0, 0.08);
+
+    /* Orb opacity */
+    --orb-opacity: 0.5;
+
+    /* Misc */
+    --radius: 0.75rem;
+
+    /* Fonts */
+    --font-display: var(--font-syne), 'Inter', sans-serif;
+    --font-body: var(--font-dm-sans), 'Inter', sans-serif;
+  }
+
+  /* ── DARK MODE ─────────────────────────────────────────── */
+  .dark {
     /* Core surfaces */
     --background: #050508;
     --surface: #0D0D14;
     --surface-2: #13131E;
 
     /* Borders */
-    --border-color: rgba(255,255,255,0.06);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --border-subtle: rgba(255, 255, 255, 0.04);
 
     /* Accent palette */
-    --accent-primary: #6C63FF;
-    --accent-cyan: #00D4FF;
     --color-success: #00FF88;
     --color-warning: #FFB800;
     --color-danger: #FF4D6D;
@@ -26,24 +94,45 @@
     --text-secondary: #8888AA;
     --text-muted: #444466;
 
-    /* Legacy HSL tokens (kept for any residual usage) */
-    --foreground: 240 20% 97%;
-    --card: 240 30% 6%;
-    --card-foreground: 240 20% 97%;
-    --primary: 245 95% 69%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 30% 10%;
-    --muted: 240 20% 14%;
-    --muted-foreground: 240 10% 50%;
-    --accent: 245 95% 69%;
-    --destructive: 350 80% 65%;
-    --border: 240 20% 12%;
-    --ring: 245 95% 69%;
-    --radius: 0.75rem;
+    /* Glass card */
+    --glass-bg: rgba(13, 13, 20, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-hover-border: rgba(108, 99, 255, 0.15);
+    --glass-hover-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 
-    /* Fonts */
-    --font-display: var(--font-syne), 'Inter', sans-serif;
-    --font-body: var(--font-dm-sans), 'Inter', sans-serif;
+    /* Input */
+    --input-bg: #0D0D14;
+    --input-border: rgba(255, 255, 255, 0.08);
+    --input-placeholder: #444466;
+
+    /* Scrollbar */
+    --scrollbar-track: #050508;
+    --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.15);
+
+    /* Grid lines */
+    --grid-color: rgba(108, 99, 255, 0.02);
+
+    /* Progress bar track */
+    --track-bg: rgba(255, 255, 255, 0.04);
+
+    /* Divider */
+    --divider: rgba(255, 255, 255, 0.06);
+
+    /* Nav */
+    --nav-bg: rgba(5, 5, 8, 0.8);
+
+    /* Watermark text */
+    --watermark: rgba(255, 255, 255, 0.04);
+
+    /* Score ring track */
+    --ring-track: rgba(255, 255, 255, 0.06);
+
+    /* Orb opacity */
+    --orb-opacity: 1;
+
+    /* Misc */
+    --radius: 0.75rem;
   }
 }
 
@@ -59,6 +148,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   /* Accessible focus ring */
@@ -74,8 +164,8 @@ body::before {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(108, 99, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(108, 99, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
   background-size: 48px 48px;
   pointer-events: none;
   z-index: -1;
@@ -83,17 +173,17 @@ body::before {
 
 /* ── Glass Card ───────────────────────────────────────────── */
 .glass-card {
-  background: rgba(13, 13, 20, 0.6);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  border-color: rgba(108, 99, 255, 0.15);
+  border-color: var(--glass-hover-border);
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--glass-hover-shadow);
 }
 
 /* Cards inside interactive containers shouldn't double-lift */
@@ -103,14 +193,14 @@ body::before {
 
 /* ── Gradient Text ────────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #F0F0FF 30%, #6C63FF 70%);
+  background: linear-gradient(135deg, var(--text-primary) 30%, #6C63FF 70%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-hero {
-  background: linear-gradient(135deg, #F0F0FF 0%, #6C63FF 50%, #00D4FF 100%);
+  background: linear-gradient(135deg, var(--text-primary) 0%, #6C63FF 50%, #00D4FF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -155,10 +245,10 @@ body::before {
 }
 
 /* ── Score Colors ─────────────────────────────────────────── */
-.score-excellent { color: #00FF88; }
-.score-good { color: #FFB800; }
-.score-moderate { color: #FFB800; }
-.score-low { color: #FF4D6D; }
+.score-excellent { color: var(--color-success); }
+.score-good { color: var(--color-warning); }
+.score-moderate { color: var(--color-warning); }
+.score-low { color: var(--color-danger); }
 
 /* ── Section Label ────────────────────────────────────────── */
 .section-label {
@@ -171,8 +261,8 @@ body::before {
 
 /* ── Input Styling ────────────────────────────────────────── */
 .input-dark {
-  background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   color: var(--text-primary);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -184,18 +274,18 @@ body::before {
 }
 
 .input-dark::placeholder {
-  color: var(--text-muted);
+  color: var(--input-placeholder);
 }
 
 /* ── Scrollbar ────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* ── Spinner ──────────────────────────────────────────────── */
@@ -235,4 +325,12 @@ body::before {
   33%, 63% { opacity: 0; transform: translateY(-8px); }
   66%, 96% { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Theme Transition ─────────────────────────────────────── */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease !important;
 }

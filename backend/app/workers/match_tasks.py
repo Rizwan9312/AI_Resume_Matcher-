@@ -166,6 +166,24 @@ async def _run_pipeline(match_id: str) -> dict:
 
                 await session.commit()
 
+                # === NEW: trigger LinkedIn job fetch after match is saved ===
+                try:
+                    from app.workers.linkedin_tasks import fetch_linkedin_jobs
+                    fetch_linkedin_jobs.delay(
+                        user_id=str(match.user_id),
+                        resume_id=str(match.resume_id),
+                        resume_text=resume_text,
+                        job_description_text=jd_text,
+                        match_result_id=str(match.id),
+                        match_data={
+                            "missing_keywords": missing,
+                            "final_score": final,
+                        },
+                    )
+                except Exception as linkedin_exc:
+                    logger.warning("linkedin_trigger.failed", error=str(linkedin_exc))
+                # === END NEW ===
+
                 logger.info("match.complete", match_id=match_id, final_score=final,
                             processing_ms=match.processing_ms)
                 return {"match_id": match_id, "status": "complete", "final_score": final}
