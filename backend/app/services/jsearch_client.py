@@ -78,9 +78,8 @@ async def _fetch_page(client: httpx.AsyncClient, query: str, params: dict) -> Li
             )
             body = resp.json()
 
-            # Handle rate limiting with exponential backoff
             if resp.status_code == 429:
-                wait_secs = 5 * (2 ** attempt)  # 5s, 10s, 20s
+                wait_secs = 5 * (2 ** attempt)
                 logger.warning(
                     "jsearch.rate_limited",
                     query=query,
@@ -89,6 +88,20 @@ async def _fetch_page(client: httpx.AsyncClient, query: str, params: dict) -> Li
                 )
                 await asyncio.sleep(wait_secs)
                 continue
+
+            # FIX: 403 means not subscribed — log a clear actionable message
+            # and break immediately (retrying won't help with auth errors)
+            if resp.status_code == 403:
+                message = body.get("message", "") if isinstance(body, dict) else str(body)
+                logger.error(
+                    "jsearch.not_subscribed",
+                    status=403,
+                    message=message,
+                    query=query,
+                    fix="Go to https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch "
+                        "and subscribe, then update JSEARCH_API_KEY in backend/.env",
+                )
+                return []  # don't retry auth failures
 
             if resp.status_code != 200:
                 logger.error(
@@ -117,12 +130,15 @@ async def _fetch_page(client: httpx.AsyncClient, query: str, params: dict) -> Li
 async def search_jobs(query_params: dict, num_pages: int = 1) -> List[Dict]:
     """
     Calls JSearch with the primary job title and skills.
-    Also runs a second call with the first alternative title for variety.
     Falls back to a broader search if the first attempt returns nothing.
     Returns a deduplicated list of normalised job dicts.
     """
     if not settings.JSEARCH_API_KEY:
-        logger.warning("jsearch.no_api_key")
+        logger.error(
+            "jsearch.no_api_key",
+            fix="Set JSEARCH_API_KEY in backend/.env — get it from "
+                "https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch",
+        )
         return []
 
     title    = query_params.get("primary_job_title", "")
@@ -145,18 +161,18 @@ async def search_jobs(query_params: dict, num_pages: int = 1) -> List[Dict]:
                 seen_ids.add(jid)
                 all_jobs.append(_normalize_job(raw))
 
+    logger.info("jsearch.starting_search", primary_query=primary_query, queries=queries_to_run)
+
     async with httpx.AsyncClient(timeout=30.0) as client:
-        # ── Pass 1: broader search (no seniority filter, month window) ──
         for q in queries_to_run:
             raw_list = await _fetch_page(client, q, {
-                "query":            q,
-                "page":             "1",
-                "num_pages":        str(num_pages),
-                "date_posted":      "month",
+                "query":       q,
+                "page":        "1",
+                "num_pages":   str(num_pages),
+                "date_posted": "month",
             })
             _collect(raw_list)
 
-        # ── Pass 2: fallback with just the job title if still empty ──
         if not all_jobs and title:
             logger.info("jsearch.fallback", reason="no_results_from_primary", title=title)
             raw_list = await _fetch_page(client, title, {

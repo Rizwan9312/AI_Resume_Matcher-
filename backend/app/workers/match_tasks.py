@@ -48,10 +48,9 @@ async def _run_pipeline(match_id: str) -> dict:
     from app.utils.file_utils import download_file
     import uuid
 
-    # ── Create a fresh engine for this task (avoids closed event loop issues)
     engine = create_async_engine(
         settings.DATABASE_URL,
-        pool_pre_ping=False,   # skip ping — fresh engine has no stale connections
+        pool_pre_ping=False,
         pool_size=2,
         max_overflow=0,
     )
@@ -65,7 +64,6 @@ async def _run_pipeline(match_id: str) -> dict:
 
     try:
         async with session_factory() as session:
-            # Load match record
             result = await session.execute(
                 select(MatchResult).where(MatchResult.id == uuid.UUID(match_id))
             )
@@ -77,7 +75,6 @@ async def _run_pipeline(match_id: str) -> dict:
             match.status = MatchStatus.PROCESSING
 
             try:
-                # Load resume and JD
                 resume_result = await session.execute(
                     select(Resume).where(Resume.id == match.resume_id)
                 )
@@ -88,7 +85,6 @@ async def _run_pipeline(match_id: str) -> dict:
                 )
                 jd = jd_result.scalar_one()
 
-                # Get resume text
                 if resume.parsed_text:
                     resume_text = resume.parsed_text
                 else:
@@ -110,31 +106,25 @@ async def _run_pipeline(match_id: str) -> dict:
 
                 jd_text = jd.raw_text
 
-                # Extract keywords
                 resume_kw = extract_all_keywords(resume_text)
                 jd_kw = extract_all_keywords(jd_text)
 
-                # Compute scores
                 bert_score = await compute_bert_score(resume_text, jd_text)
                 tfidf_score = compute_tfidf_score(resume_text, jd_text)
 
-                # Keyword matching
                 resume_set = {k.lower() for k in resume_kw["all_keywords"]}
                 jd_set = {k.lower() for k in jd_kw["all_keywords"]}
                 matched = sorted(resume_set & jd_set)
                 missing = sorted(jd_set - resume_set)
                 keyword_score = round((len(matched) / len(jd_set) * 100) if jd_set else 0.0, 2)
 
-                # LLM scoring
                 llm_result = await call_llm_scorer(resume_text, jd_text)
                 llm_score_val = float(llm_result["overall_fit"]) if llm_result else None
 
-                # Role detection + final score
                 role_data = apply_role_weights(
                     bert_score, tfidf_score, keyword_score, jd_text, llm_score_val
                 )
 
-                # Generate feedback
                 final = role_data["final_score"]
                 if final >= 80:
                     feedback = "Strong match! Your resume aligns well with this role."
@@ -147,7 +137,6 @@ async def _run_pipeline(match_id: str) -> dict:
                 if missing:
                     feedback += " Missing skills: " + ", ".join(missing[:5])
 
-                # Update match record
                 match.bert_score = bert_score
                 match.tfidf_score = tfidf_score
                 match.keyword_score = keyword_score
@@ -166,10 +155,19 @@ async def _run_pipeline(match_id: str) -> dict:
 
                 await session.commit()
 
-                # === NEW: trigger LinkedIn job fetch after match is saved ===
+                # ── Trigger LinkedIn job fetch ──────────────────────────────
+                # FIX: log before AND after .delay() so we can see exactly
+                # where the chain breaks. Previously the except swallowed all
+                # errors without surfacing them.
+                logger.info(
+                    "linkedin_trigger.attempting",
+                    match_id=match_id,
+                    user_id=str(match.user_id),
+                    resume_id=str(match.resume_id),
+                )
                 try:
                     from app.workers.linkedin_tasks import fetch_linkedin_jobs
-                    fetch_linkedin_jobs.delay(
+                    task = fetch_linkedin_jobs.delay(
                         user_id=str(match.user_id),
                         resume_id=str(match.resume_id),
                         resume_text=resume_text,
@@ -180,9 +178,20 @@ async def _run_pipeline(match_id: str) -> dict:
                             "final_score": final,
                         },
                     )
+                    logger.info(
+                        "linkedin_trigger.queued",
+                        task_id=str(task.id),
+                        match_id=match_id,
+                    )
                 except Exception as linkedin_exc:
-                    logger.warning("linkedin_trigger.failed", error=str(linkedin_exc))
-                # === END NEW ===
+                    # FIX: log the FULL error instead of swallowing it
+                    import traceback
+                    logger.error(
+                        "linkedin_trigger.failed",
+                        error=str(linkedin_exc),
+                        traceback=traceback.format_exc(),
+                    )
+                # ── End LinkedIn trigger ────────────────────────────────────
 
                 logger.info("match.complete", match_id=match_id, final_score=final,
                             processing_ms=match.processing_ms)
@@ -197,5 +206,4 @@ async def _run_pipeline(match_id: str) -> dict:
                 return {"match_id": match_id, "status": "failed", "error": str(exc)}
 
     finally:
-        # Always dispose the engine to cleanly close all connections
         await engine.dispose()

@@ -2,7 +2,7 @@
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, delete
 
@@ -70,14 +70,15 @@ async def _run(
     async with async_session_factory() as session:
 
         # Remove expired recommendations for this user
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         await session.execute(
             delete(JobRecommendation).where(
                 JobRecommendation.user_id == uuid.UUID(user_id),
-                JobRecommendation.expires_at < datetime.utcnow(),
+                JobRecommendation.expires_at < now,
             )
         )
 
-        expires = datetime.utcnow() + timedelta(hours=6)
+        expires = now + timedelta(hours=6)
 
         for job in scored_jobs[:20]:
             existing = await session.execute(
@@ -102,7 +103,7 @@ async def _run(
                 job_location=job["job_location"],
                 job_description=job["job_description"],
                 job_apply_link=job["job_apply_link"],
-                job_posted_at=job["job_posted_at"],
+                job_posted_at=job["job_posted_at"].replace(tzinfo=None) if job.get("job_posted_at") and hasattr(job["job_posted_at"], 'replace') else job.get("job_posted_at"),
                 job_salary_min=job["job_salary_min"],
                 job_salary_max=job["job_salary_max"],
                 job_salary_currency=job["job_salary_currency"],
